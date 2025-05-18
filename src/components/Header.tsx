@@ -1,4 +1,3 @@
-import { shadow } from "@/styles/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -9,14 +8,7 @@ import { getUser } from "@/auth/server";
 async function Header() {
   const user = await getUser();
   return (
-    <header
-      className="bg-popover relative flex h-24 w-full items-center justify-between px-3 sm:px-8"
-      style={{
-        boxShadow: shadow,
-      }}
-    >
-      {/* <SidebarTrigger className="absolute top-1 left-1" /> */}
-
+    <header className="bg-popover relative flex h-24 w-full items-center justify-between px-3 sm:px-8">
       <Link className="flex items-end gap-2" href="/">
         <Image
           src="/thinknote.png"

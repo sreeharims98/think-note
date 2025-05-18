@@ -85,3 +85,5 @@ export const getAllNotes = async (userId: string) => {
     },
   });
 };
+
+export const askAIAboutNotesAction = async () => {};
