@@ -5,75 +5,40 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Fragment, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Textarea } from "./ui/textarea";
-import { ArrowUpIcon } from "lucide-react";
 import { askAIAboutNotesAction } from "@/actions/notes";
 import "@/styles/ai-response.css";
 
 type Props = {
   user: User | null;
+  note: string | undefined;
 };
 
-function AskAIButton({ user }: Props) {
+function AskAIButton({ user, note }: Props) {
   const router = useRouter();
 
   const [isPending, startTransition] = useTransition();
 
   const [open, setOpen] = useState(false);
-  const [questionText, setQuestionText] = useState("");
-  const [questions, setQuestions] = useState<string[]>([]);
-  const [responses, setResponses] = useState<string[]>([]);
+  const [response, setResponse] = useState<string>("");
 
   const handleOnOpenChange = (isOpen: boolean) => {
     if (!user) {
       router.push("/login");
     } else {
       if (isOpen) {
-        setQuestionText("");
-        setQuestions([]);
-        setResponses([]);
+        setResponse("");
       }
       setOpen(isOpen);
     }
   };
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  const handleInput = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  };
-
-  const handleClickInput = () => {
-    textareaRef.current?.focus();
-  };
-
-  const handleSubmit = () => {
-    if (!questionText.trim()) return;
-
-    const newQuestions = [...questions, questionText];
-    setQuestions(newQuestions);
-    setQuestionText("");
-    setTimeout(scrollToBottom, 100);
-
-    // startTransition(async () => {
-    //   // const response = await askAIAboutNotesAction(newQuestions, responses);
-    //   // setResponses((prev) => [...prev, response]);
-
-    //   setTimeout(scrollToBottom, 100);
-    // });
-  };
 
   const scrollToBottom = () => {
     contentRef.current?.scrollTo({
@@ -82,67 +47,42 @@ function AskAIButton({ user }: Props) {
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  const summarizeNote = useCallback(() => {
+    if (!note) return;
+
+    setTimeout(scrollToBottom, 100);
+
+    startTransition(async () => {
+      const response = await askAIAboutNotesAction(note);
+      if (response) setResponse(response);
+
+      setTimeout(scrollToBottom, 100);
+    });
+  }, [note]);
+
+  useEffect(() => {
+    summarizeNote();
+  }, [summarizeNote]);
 
   return (
     <Dialog open={open} onOpenChange={handleOnOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="secondary">Ask AI</Button>
+        <Button variant="secondary">AI Summarise</Button>
       </DialogTrigger>
       <DialogContent
         className="custom-scrollbar flex h-[85vh] max-w-4xl flex-col overflow-y-auto"
         ref={contentRef}
       >
         <DialogHeader>
-          <DialogTitle>Ask AI About Your Notes</DialogTitle>
-          <DialogDescription>
-            Out AI can answer questions about all of your notes
-          </DialogDescription>
+          <DialogTitle>AI Summarise Your Notes</DialogTitle>
         </DialogHeader>
 
         <div className="mt-4 flex flex-col gap-8">
-          {questions.map((question, index) => (
-            <Fragment key={index}>
-              <p className="bg-muted text-muted-foreground ml-auto h-auto max-w-[60%] rounded-md px-2 py-1 text-sm break-all">
-                {question}
-              </p>
-              {responses[index] && (
-                <p
-                  className="bot-response text-muted-foreground text-sm"
-                  dangerouslySetInnerHTML={{ __html: responses[index] }}
-                />
-              )}
-            </Fragment>
-          ))}
-          {isPending && <p className="animate-pulse text-sm">Thinking...</p>}
-        </div>
-
-        <div
-          className="mt-auto flex cursor-text flex-col rounded-lg border p-4"
-          onClick={handleClickInput}
-        >
-          <Textarea
-            ref={textareaRef}
-            placeholder="Ask me anything about your notes..."
-            className="placeholder:text-muted-foreground resize-none rounded-none border-none bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            style={{
-              minHeight: "0",
-              lineHeight: "normal",
-            }}
-            rows={1}
-            onInput={handleInput}
-            onKeyDown={handleKeyDown}
-            value={questionText}
-            onChange={(e) => setQuestionText(e.target.value)}
+          <p
+            className="bot-response text-muted-foreground text-sm"
+            dangerouslySetInnerHTML={{ __html: response }}
           />
-          <Button className="ml-auto size-8 rounded-full">
-            <ArrowUpIcon className="text-background" />
-          </Button>
+          {isPending && <p className="animate-pulse text-sm">Thinking...</p>}
         </div>
       </DialogContent>
     </Dialog>
